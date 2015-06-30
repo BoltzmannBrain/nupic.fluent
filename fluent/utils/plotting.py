@@ -119,12 +119,15 @@ class PlotNLP():
 
   def plotCategoryAccuracies():
     """
+    Shows the accuracy for the categories at a certain training size
     """
     ## TODO
 
 
   def plotCummulativeAccuracies():
     """
+    Creates N column plots that show the accuracy for each category at a
+    certain training size
     """
     ## TODO
 

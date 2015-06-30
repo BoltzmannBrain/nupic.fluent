@@ -175,6 +175,12 @@ class Runner(object):
 
     self.model.printFinalReport(self.trainSize, [r[0] for r in resultCalcs])
     ## TODO: plot accuracies; see Model base class
+    trialAccuracies = [self.model.calculateClassificationResults(
+      self.results[i]) for i in xrange(len(self.trainSize))]
+    classificationAccuracies = defaultdict(list)
+    for trial in trialAccuracies:
+      for label, acc in trial:
+        classificationsAccuracies[label].append(acc)
 
 
   def save(self):

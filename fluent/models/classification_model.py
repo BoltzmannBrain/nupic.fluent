@@ -119,7 +119,8 @@ class ClassificationModel(object):  ## TODO: update docstring
   def calculateClassificationResults(self, classifications):  ## TODO: plot
     """Calculate the classification accuracy for each category.
     """
-    ## TODO
+    labels = set(classifications[1])
+    return [(l, calculateAccuracy(classifications, l)) for l in labels]
 
 
   def evaluateResults(self, classifications, references, idx): ## TODO: evaluation metrics for multiple classifcations
@@ -178,7 +179,7 @@ class ClassificationModel(object):  ## TODO: update docstring
 
 
   @staticmethod
-  def calculateAccuracy(classifications):   ## TODO: just get numpy arrays passed in?
+  def calculateAccuracy(classifications, label=None):   ## TODO: just get numpy arrays passed in?
     """
     Returns classification accuracy -- i.e. correct labels out of total labels.
     """
@@ -188,7 +189,11 @@ class ClassificationModel(object):  ## TODO: update docstring
     actual = numpy.array(classifications[1])
     predicted = numpy.array([c[0] for c in classifications[0]])  ## TODO: multiclass; this forces evaluation metrics to consider only the first predicted classification
 
-    return (actual == predicted).sum() / float(len(actual))
+    if label is None:
+      return (actual == predicted).sum() / float(len(actual))
+    else:
+      instances = (actual == label)
+      return ((actual == predicted) & instances).sum() / float(instances.sum())
 
 
   @staticmethod
