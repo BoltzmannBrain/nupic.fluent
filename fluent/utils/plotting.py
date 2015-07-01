@@ -123,6 +123,9 @@ class PlotNLP():
   def plotCategoryAccuracies(self, trialAccuracies, trainSize):
     """
     Shows the accuracy for the categories at a certain training size
+    @param trialAccuracies    (dict)    maps a trial size to a dictionary that
+                                        maps a category to a list of accuracies
+    @param trainSize          (list)    size of training set for each trial
     """
     sizes = sorted(set(trainSize))
     size_sqrt = math.sqrt(len(sizes))
@@ -161,8 +164,6 @@ class PlotNLP():
       fig.append_trace(trace, row, col)
 
     fig["layout"]["title"] = "Accuracies for category by training size"
-    #fig["layout"]["xaxis1"] = {"title": "Category Label"}
-    #fig["layout"]["yaxis1"] = {"title": "Accuracy"}
     fig["layout"]["xaxis1"]["title"] = "Category Label"
     fig["layout"]["yaxis1"]["title"] = "Accuracy"
 
@@ -174,6 +175,9 @@ class PlotNLP():
     """
     Creates scatter plots that show the accuracy for each category at a
     certain training size
+    @param classificationAccuracies (dict) maps a category label to a list of
+                                           lists of accuracies
+    @param trainSize                (list) size of training set for each trial
     """
     # Convert list of list of accuracies to list of means
     classificationSummaries = [(label, map(numpy.mean, acc))
