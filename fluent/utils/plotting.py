@@ -130,7 +130,7 @@ class PlotNLP():
     if not size_sqrt.is_integer():
       side += 1
 
-    fig = tls.make_subplots(rows=side, cols=side)
+    fig = tls.make_subplots(rows=side, cols=side, shared_xaxes=True, shared_yaxes=True)
     for i, s in enumerate(sizes):
       col = i % side + 1
       row = i / side + 1
@@ -151,18 +151,23 @@ class PlotNLP():
         name=s,
         error_y=ErrorY(
           type='data',
+          symmetric=False,
           array=std,
+          arrayminus=std,
           visible=True
         )
       )
 
       fig.append_trace(trace, row, col)
-      #xaxis = "xaxis{}".format(col)
-      #fig["layout"][xaxis]["title"] = s
 
     fig["layout"]["title"] = "Accuracies for category by training size"
+    #fig["layout"]["xaxis1"] = {"title": "Category Label"}
+    #fig["layout"]["yaxis1"] = {"title": "Accuracy"}
+    fig["layout"]["xaxis1"]["title"] = "Category Label"
+    fig["layout"]["yaxis1"]["title"] = "Accuracy"
 
     plot_url = py.plot(fig)
+    print "Category Accuracies URL: ", plot_url
 
 
   def plotCummulativeAccuracies(self, classificationAccuracies, trainSize):
