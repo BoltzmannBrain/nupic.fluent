@@ -22,10 +22,12 @@
 This file contains plotting tools for NLP experiment results.
 """
 
+import math
 import numpy
 import os
 import pandas as pd
 import plotly.plotly as py
+import plotly.tools as tls
 
 from plotly.graph_objs import *
 
@@ -122,7 +124,45 @@ class PlotNLP():
     """
     Shows the accuracy for the categories at a certain training size
     """
-    ## TODO
+    sizes = sorted(set(trainSize))
+    size_sqrt = math.sqrt(len(sizes))
+    side = int(size_sqrt)
+    if not size_sqrt.is_integer():
+      side += 1
+
+    fig = tls.make_subplots(rows=side, cols=side)
+    for i, s in enumerate(sizes):
+      col = i % side + 1
+      row = i / side + 1
+      classificationAccuracies = trialAccuracies[s]
+      
+      x = []
+      y = []
+      std = []
+      for label, acc in classificationAccuracies.iteritems():
+        x.append(label)
+        y.append(numpy.mean(acc))
+        std.append(numpy.std(acc))
+
+      trace = Scatter(
+        x=x,
+        y=y,
+        mode='markers',
+        name=s,
+        error_y=ErrorY(
+          type='data',
+          array=std,
+          visible=True
+        )
+      )
+
+      fig.append_trace(trace, row, col)
+      #xaxis = "xaxis{}".format(col)
+      #fig["layout"][xaxis]["title"] = s
+
+    fig["layout"]["title"] = "Accuracies for category by training size"
+
+    plot_url = py.plot(fig)
 
 
   def plotCummulativeAccuracies(self, classificationAccuracies, trainSize):
@@ -135,8 +175,9 @@ class PlotNLP():
         for label, acc in classificationAccuracies.iteritems()]
     
     data = []
+    sizes = sorted(set(trainSize))
     for label, summary in classificationSummaries:
-      data.append(Scatter(x=trainSize, y=summary, name=label))
+      data.append(Scatter(x=sizes, y=summary, name=label))
     data = Data(data)
 
     layout = Layout(

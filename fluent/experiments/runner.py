@@ -182,7 +182,7 @@ class Runner(object):
       accuracies = self.model.calculateClassificationResults(self.results[i])
       # In case there are multiple trials of the same size
       for label, acc in accuracies:
-        numpy.append(trialAccuracies[size][label], acc)
+        trialAccuracies[size][label] = numpy.append(trialAccuracies[size][label], acc)
 
     # Need the accuracies to be ordered for the graph
     trials = sorted(trialAccuracies.keys())
