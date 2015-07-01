@@ -24,7 +24,9 @@ import numpy
 import os
 import random
 
+from collections import defaultdict
 from fluent.utils.csv_helper import readCSV
+from fluent.utils.plotting import PlotNLP
 from fluent.utils.text_preprocess import TextPreprocess
 
 
@@ -175,12 +177,24 @@ class Runner(object):
 
     self.model.printFinalReport(self.trainSize, [r[0] for r in resultCalcs])
     ## TODO: plot accuracies; see Model base class
-    trialAccuracies = [self.model.calculateClassificationResults(
-      self.results[i]) for i in xrange(len(self.trainSize))]
+    trialAccuracies = defaultdict(lambda : defaultdict(lambda: numpy.ndarray(0)))
+    for i, size in enumerate(self.trainSize):
+      accuracies = self.model.calculateClassificationResults(self.results[i])
+      # In case there are multiple trials of the same size
+      for label, acc in accuracies:
+        numpy.append(trialAccuracies[size][label], acc)
+
+    # Need the accuracies to be ordered for the graph
+    trials = sorted(trialAccuracies.keys())
     classificationAccuracies = defaultdict(list)
-    for trial in trialAccuracies:
-      for label, acc in trial:
-        classificationsAccuracies[label].append(acc)
+    for trial in trials:
+      accuracies = trialAccuracies[trial]
+      for label, acc in accuracies.iteritems():
+        classificationAccuracies[label].append(acc)
+
+    plotter = PlotNLP()
+    plotter.plotCategoryAccuracies(trialAccuracies, self.trainSize)
+    plotter.plotCummulativeAccuracies(classificationAccuracies, self.trainSize)
 
 
   def save(self):

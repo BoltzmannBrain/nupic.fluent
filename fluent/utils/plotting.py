@@ -22,6 +22,7 @@
 This file contains plotting tools for NLP experiment results.
 """
 
+import numpy
 import os
 import pandas as pd
 import plotly.plotly as py
@@ -117,19 +118,50 @@ class PlotNLP():
     print "Confusion matrix URL: ", plot_url
 
 
-  def plotCategoryAccuracies():
+  def plotCategoryAccuracies(self, trialAccuracies, trainSize):
     """
     Shows the accuracy for the categories at a certain training size
     """
     ## TODO
 
 
-  def plotCummulativeAccuracies():
+  def plotCummulativeAccuracies(self, classificationAccuracies, trainSize):
     """
-    Creates N column plots that show the accuracy for each category at a
+    Creates scatter plots that show the accuracy for each category at a
     certain training size
     """
-    ## TODO
+    # Convert list of list of accuracies to list of means
+    classificationSummaries = [(label, map(numpy.mean, acc))
+        for label, acc in classificationAccuracies.iteritems()]
+    
+    data = []
+    for label, summary in classificationSummaries:
+      data.append(Scatter(x=trainSize, y=summary, name=label))
+    data = Data(data)
+
+    layout = Layout(
+      title='Cummulative Accuracies for ' + self.experimentName,
+      xaxis=XAxis(
+        title='Training size',
+        titlefont=Font(
+          family='Courier New, monospace',
+          size=18,
+          color='#7f7f7f'
+        )
+      ),
+      yaxis=YAxis(
+        title='Accuracy',
+        titlefont=Font(
+          family='Courier New, monospace',
+          size=18,
+          color='#7f7f7f'
+        )
+      )
+    )
+
+    fig = Figure(data=data, layout=layout)
+    plot_url = py.plot(fig)
+    print "Cummulative Accuracies URL: ", plot_url
 
 
   @staticmethod

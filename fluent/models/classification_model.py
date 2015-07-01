@@ -120,7 +120,7 @@ class ClassificationModel(object):  ## TODO: update docstring
     """Calculate the classification accuracy for each category.
     """
     labels = set(classifications[1])
-    return [(l, calculateAccuracy(classifications, l)) for l in labels]
+    return [(l, self.calculateAccuracy(classifications, l)) for l in labels]
 
 
   def evaluateResults(self, classifications, references, idx): ## TODO: evaluation metrics for multiple classifcations
