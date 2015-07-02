@@ -118,6 +118,13 @@ class ClassificationModel(object):  ## TODO: update docstring
 
   def calculateClassificationResults(self, classifications):  ## TODO: plot
     """Calculate the classification accuracy for each category.
+    @param classifications  (list)            Two lists: (0) predictions and (1)
+                                              actual classifications. Items in
+                                              the predictions list are lists of
+                                              ints or None, and items in actual
+                                              classifications list are ints.
+    @return                 (list)            tuples of class name and accuracy
+                                              for that class
     """
     labels = set(classifications[1])
     return [(l, self.calculateAccuracy(classifications, l)) for l in labels]
@@ -179,9 +186,19 @@ class ClassificationModel(object):  ## TODO: update docstring
 
 
   @staticmethod
-  def calculateAccuracy(classifications, label=None):   ## TODO: just get numpy arrays passed in?
+  def calculateAccuracy(classifications, className=None):   ## TODO: just get numpy arrays passed in?
     """
     Returns classification accuracy -- i.e. correct labels out of total labels.
+    If className is provided, then only look at the labels that are actually
+    instances of the class
+    @param classifications  (list)            Two lists: (0) predictions and
+                                              (1) actual classifications. Items
+                                              in the predictions list are lists
+                                              of ints or None, and items in
+                                              actual classifications list are
+                                              ints.
+    @param className        (int)             If provided, indicates that only
+                                              this class should be considered
     """
     if len(classifications[0]) != len(classifications[1]):
       raise ValueError("Classification lists must have same length.")
@@ -189,10 +206,10 @@ class ClassificationModel(object):  ## TODO: update docstring
     actual = numpy.array(classifications[1])
     predicted = numpy.array([c[0] for c in classifications[0]])  ## TODO: multiclass; this forces evaluation metrics to consider only the first predicted classification
 
-    if label is None:
+    if className is None:
       return (actual == predicted).sum() / float(len(actual))
     else:
-      instances = (actual == label)
+      instances = (actual == className)
       return ((actual == predicted) & instances).sum() / float(instances.sum())
 
 

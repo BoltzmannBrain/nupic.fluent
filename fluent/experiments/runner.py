@@ -177,27 +177,28 @@ class Runner(object):
 
     self.model.printFinalReport(self.trainSize, [r[0] for r in resultCalcs])
 
-    # In case there are multiple trials of the same size
-    # trialSize -> (category -> list of accuracies)
-    trialAccuracies = defaultdict(lambda : defaultdict(lambda: numpy.ndarray(0)))
-    for i, size in enumerate(self.trainSize):
-      accuracies = self.model.calculateClassificationResults(self.results[i])
-      for label, acc in accuracies:
-        acc_list = trialAccuracies[size][label]
-        trialAccuracies[size][label] = numpy.append(acc_list, acc)
+    if self.model.plot:
+      # In case there are multiple trials of the same size
+      # trialSize -> (category -> list of accuracies)
+      trialAccuracies = defaultdict(lambda: defaultdict(lambda: numpy.ndarray(0)))
+      for i, size in enumerate(self.trainSize):
+        accuracies = self.model.calculateClassificationResults(self.results[i])
+        for label, acc in accuracies:
+          acc_list = trialAccuracies[size][label]
+          trialAccuracies[size][label] = numpy.append(acc_list, acc)
 
-    # Need the accuracies to be ordered for the graph
-    trials = sorted(set(self.trainSize))
-    # category -> list of list of accuracies
-    classificationAccuracies = defaultdict(list)
-    for trial in trials:
-      accuracies = trialAccuracies[trial]
-      for label, acc in accuracies.iteritems():
-        classificationAccuracies[label].append(acc)
+      # Need the accuracies to be ordered for the graph
+      trials = sorted(set(self.trainSize))
+      # category -> list of list of accuracies
+      classificationAccuracies = defaultdict(list)
+      for trial in trials:
+        accuracies = trialAccuracies[trial]
+        for label, acc in accuracies.iteritems():
+          classificationAccuracies[label].append(acc)
 
-    plotter = PlotNLP()
-    plotter.plotCategoryAccuracies(trialAccuracies, self.trainSize)
-    plotter.plotCummulativeAccuracies(classificationAccuracies, self.trainSize)
+      plotter = PlotNLP()
+      plotter.plotCategoryAccuracies(trialAccuracies, self.trainSize)
+      plotter.plotCummulativeAccuracies(classificationAccuracies, self.trainSize)
 
 
   def save(self):

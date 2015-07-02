@@ -129,14 +129,13 @@ class PlotNLP():
     """
     sizes = sorted(set(trainSize))
     size_sqrt = math.sqrt(len(sizes))
-    side = int(size_sqrt)
-    if not size_sqrt.is_integer():
-      side += 1
+    subplotDimension = int(math.ceil(size_sqrt))
 
-    fig = tls.make_subplots(rows=side, cols=side, shared_xaxes=True, shared_yaxes=True)
+    fig = tls.make_subplots(rows=subplotDimension, cols=subplotDimension,
+      shared_xaxes=True, shared_yaxes=True)
     for i, s in enumerate(sizes):
-      col = i % side + 1
-      row = i / side + 1
+      col = i % subplotDimension + 1
+      row = i / subplotDimension + 1
       classificationAccuracies = trialAccuracies[s]
       
       x = []
