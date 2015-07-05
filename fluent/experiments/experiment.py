@@ -59,6 +59,7 @@ def run(args):
                   modelName=args.modelName,
                   modelModuleName=args.modelModuleName,
                   multiclass=args.multiclass,
+                  plot=args.plot,
                   trainSize=args.trainSize,
                   verbosity=args.verbosity)
 
@@ -110,6 +111,9 @@ if __name__ == "__main__":
                       default=False)
   parser.add_argument("--multiclass",
                       help="Model will train on multiple classes per sample.",  ## TODO: add multiclass testing
+                      default=False)
+  parser.add_argument("--plot",
+                      help="Model will plot evaluation results.",
                       default=False)
   parser.add_argument("--trainSize",
                       default=[13],

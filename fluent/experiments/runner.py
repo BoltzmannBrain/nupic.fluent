@@ -45,6 +45,7 @@ class Runner(object):
                modelName,
                modelModuleName,
                multiclass,
+               plot,
                trainSize,
                verbosity):
     """
@@ -55,6 +56,7 @@ class Runner(object):
                                       loaded.
     @param modelName        (str)     Name of nupic.fluent Model subclass.
     @param modeModuleName   (str)     Model module -- location of the subclass.
+    @param plot             (bool)    Generate evaluation figures with plotly. 
     @param trainSize        (str)     Number of samples to use in training.
     @param verbosity        (int)     Greater value prints out more progress.
 
@@ -66,6 +68,7 @@ class Runner(object):
     self.modelName = modelName
     self.modelModuleName = modelModuleName
     self.multiclass = multiclass
+    self.plot = plot
     self.trainSize = trainSize
     self.verbosity = verbosity
 
@@ -177,10 +180,11 @@ class Runner(object):
 
     self.model.printFinalReport(self.trainSize, [r[0] for r in resultCalcs])
 
-    if self.model.plot:
+    if self.plot:
       # In case there are multiple trials of the same size
       # trialSize -> (category -> list of accuracies)
-      trialAccuracies = defaultdict(lambda: defaultdict(lambda: numpy.ndarray(0)))
+      trialAccuracies = defaultdict(
+        lambda: defaultdict(lambda: numpy.ndarray(0)))
       for i, size in enumerate(self.trainSize):
         accuracies = self.model.calculateClassificationResults(self.results[i])
         for label, acc in accuracies:
@@ -198,7 +202,8 @@ class Runner(object):
 
       plotter = PlotNLP()
       plotter.plotCategoryAccuracies(trialAccuracies, self.trainSize)
-      plotter.plotCummulativeAccuracies(classificationAccuracies, self.trainSize)
+      plotter.plotCummulativeAccuracies(classificationAccuracies,
+                                        self.trainSize)
 
 
   def save(self):
