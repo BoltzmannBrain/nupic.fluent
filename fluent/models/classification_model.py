@@ -135,9 +135,6 @@ class ClassificationModel(object):
     return [(l, self.calculateAccuracy(classifications, l)) for l in labelRefs]
 
 
-    return
-
-
   def evaluateResults(self, classifications, references, idx):
     """
     Calculate statistics for the predicted classifications against the actual.
