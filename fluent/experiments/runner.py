@@ -227,7 +227,6 @@ class Runner(object):
       trialAccuracies = defaultdict(lambda: defaultdict(lambda:
           numpy.ndarray(0)))
       for i, size in enumerate(self.trainSize):
-        import pdb; pdb.set_trace()
         accuracies = self.model.calculateClassificationResults(self.results[i])
         for label, acc in accuracies:
           category = self.labelRefs[label]
@@ -282,12 +281,13 @@ class Runner(object):
     for i, trial in enumerate(self.results):
       for j, predictionList in enumerate(trial[0]):
         predictions = [self.labelRefs[p] for p in predictionList]
-        if predictions == []: predictions = ["(none)"]
+        if predictions == []:
+          predictions = ["(none)"]
         expected = dataDict.items()[j+self.trainSize[i]][1]
-        aaa = (float(len(set(predictions) & set(expected)))
+
+        accuracies += (float(len(set(predictions) & set(expected)))
                           / len(expected))
 
-        accuracies[i] += aaa
       accuracies[i] = accuracies[i] / len(trial[0])
 
     return accuracies
