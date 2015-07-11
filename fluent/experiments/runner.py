@@ -285,7 +285,7 @@ class Runner(object):
           predictions = ["(none)"]
         expected = dataDict.items()[j+self.trainSize[i]][1]
 
-        accuracies += (float(len(set(predictions) & set(expected)))
+        accuracies[i] += (float(len(set(predictions) & set(expected)))
                           / len(expected))
 
       accuracies[i] = accuracies[i] / len(trial[0])
