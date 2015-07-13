@@ -92,10 +92,9 @@ class Runner(object):
     # names, and keys-values of the latter are samples-classifications.
     self.dataDict = None
     self.labelRefs = None
-    self.partitions = []
     self.patterns = defaultdict(list)
-    self.samples = None
-    self.results = []
+    self.partitions = defaultdict(list)
+    self.results = defaultdict(list)
 
 
   def _calculateTrialAccuracies(self):
@@ -194,6 +193,8 @@ class Runner(object):
     for filename, data in self.dataDict.iteritems():
       self._mapLabelRefs(data)
       self.dataDict[filename] = self._preprocess(data, preprocess)
+      # Also setup results defaultdict:
+      self.results[filename] = []
 
 
   def initModel(self):
@@ -231,14 +232,16 @@ class Runner(object):
 
   def runExperiment(self, trainSize):
     """
-    Train and test the model for each trial specified by trainSize.
+    Train and test the model for each trial specified by trainSize; the model
+    is reset each run.
 
     The training indices will be chosen at random for each trial, unless the
     member variable orderedSplit is set to True.
     """
     for i, size in enumerate(trainSize):
       import pdb; pdb.set_trace()
-      self.partitions.append(self.partitionIndices(size))
+      # self.partitions.append(self.partitionIndices(size))
+      partitions = []
 
       if self.verbosity > 0:
         print ("\tRunner selects to train on sample(s) {0}, and test on "
@@ -247,49 +250,52 @@ class Runner(object):
 
       self.model.resetModel()
       print "\tTraining for run {0} of {1}.".format(i+1, len(trainSize))
-      self.training(i)
+      self.training(partitions[0])
       print "\tTesting for this run."
-      self.testing(i)
+      self.testing(partitions[1])
 
 
   def runTrial(self, trainSize):
-    """Train and test the model for one trial specified by trainSize."""
+    """
+    Train and test the model for one trial specified by trainSize.
+    """
     for filename, data in self.patterns.iteritems():
+      # Determine samples indices for which to train on.
       length = len(data)
       split = trainSize if trainSize < length else length
       partitions = self.partitionIndices(split, length)
-      import pdb; pdb.set_trace()
+      self.partitions[filename].append(partitions)
 
+      print ("\tRunning trial for the {0} data, with training size {1}.".
+             format(filename, split))
       if self.verbosity > 0:
         print ("\tRunner selects to train on sample(s) {0}, and test "
                "on sample(s) {1}.".
-               format(self.partitions[i][0], self.partitions[i][1]))
+               format(partitions[0], partitions[1]))
 
-    self.model.resetModel()
-    print "\tTraining for run {0} of {1}.".format(i+1, len(self.trainSize))
-    self.training(i)
-    print "\tTesting for this run."
-    self.testing(i)
+      self.training(data, partitions[0])
+
+    for filename, data in self.patterns.iteritems():
+      self.testing(filename, data, partitions[1])
 
 
-  def training(self, trial):
+  def training(self, data, indices):
     """
-    Train the model one-by-one on each pattern specified in this trials
+    Train the model one-by-one on each pattern specified in this trial's
     partition of indices.
     """
-    for i in self.partitions[trial][0]:
-      self.model.trainModel(self.patterns[i]["pattern"],
-                            self.patterns[i]["labels"])
+    for i in indices:
+      self.model.trainModel(data[i]["pattern"], data[i]["labels"])
 
 
-  def testing(self, trial):
+  def testing(self, filename, data, indices):
     results = ([], [])
-    for i in self.partitions[trial][1]:
-      predicted = self.model.testModel(self.patterns[i]["pattern"])
+    for i in indices:
+      predicted = self.model.testModel(data[i]["pattern"])
       results[0].append(predicted)
-      results[1].append(self.patterns[i]["labels"])
+      results[1].append(data[i]["labels"])
 
-    self.results.append(results)
+    self.results[filename].append(results)
 
 
   def calculateResults(self):
@@ -298,12 +304,13 @@ class Runner(object):
 
     TODO: pass intended CM results to plotter.plotConfusionMatrix()
     """
-    resultCalcs = [self.model.evaluateResults(self.results[i],
-                                              self.labelRefs,
-                                              self.partitions[i][1])
-                   for i in xrange(len(self.trainSize))]
+    resultCalcs = defaultdict(list)
+    for filename, results in self.results.iteritems():
+      resultCalcs[filename] = [self.model.evaluateResults(
+          r, self.labelRefs, self.partitions[filename][i][1])
+          for i, r in enumerate(results)]
 
-    self.model.printFinalReport(self.trainSize, [r[0] for r in resultCalcs])
+    self.printFinalReport()
 
     if self.plots:
       trialAccuracies = self._calculateTrialAccuracies()
@@ -369,3 +376,16 @@ class Runner(object):
       accuracies[i] = accuracies[i] / len(trial[0])
 
     return accuracies
+
+
+  def printFinalReport(self):
+    """
+    Prints result accuracies.
+
+    TODO: move to Runner
+    """
+    template = "{0:<20}|{1:<10}"
+    print "Evaluation results for this experiment:"
+    print template.format("Size of training set", "Accuracy")
+    for i, a in enumerate(accuracies):
+      print template.format(trainSize[i], a)

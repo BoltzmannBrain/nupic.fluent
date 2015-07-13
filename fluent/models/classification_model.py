@@ -276,7 +276,7 @@ class ClassificationModel(object):
     TODO: move to Runner
     """
     template = "{0:<10}|{1:<55}|{2:<55}"
-    print "Evaluation results for the trial:"
+    print "Test classifications for the trial:"
     print template.format("#", "Actual", "Predicted")
     for i in xrange(len(labels[0])):
       if not any(labels[0][i]):
@@ -302,20 +302,6 @@ class ClassificationModel(object):
     print "{0:.3f}, {1:.3f}, {2:.3f}".format(
     results["max_accuracy"], results["mean_accuracy"], results["min_accuracy"])
     print "total confusion matrix =\n", results["total_cm"]
-
-
-  @staticmethod
-  def printFinalReport(trainSize, accuracies):
-    """
-    Prints result accuracies.
-
-    TODO: move to Runner
-    """
-    template = "{0:<20}|{1:<10}"
-    print "Evaluation results for this experiment:"
-    print template.format("Size of training set", "Accuracy")
-    for i, a in enumerate(accuracies):
-      print template.format(trainSize[i], a)
 
 
   def encodePattern(self, pattern):
