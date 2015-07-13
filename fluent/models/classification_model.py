@@ -65,15 +65,22 @@ class ClassificationModel(object):
 
 
   def logEncodings(self, patterns, path):
-    """Log the encoding dictionaries to a txt file."""
+    """
+    Log the encoding dictionaries to a txt file.
+
+    @param patterns     (defaultdict)       Keys are csv file names, values are
+                                            OrderedDicts with encoded patterns.
+    @param path         (str)               Where to write encodings json.
+    """
     if not os.path.isdir(path):
       raise ValueError("Invalid path to write file.")
 
     # Cast numpy arrays to list objects for serialization.
     jsonPatterns = copy.deepcopy(patterns)
-    for jp in jsonPatterns:
-      jp["pattern"]["bitmap"] = jp["pattern"].get("bitmap", None).tolist()
-      jp["labels"] = jp.get("labels", None).tolist()
+    for patternDict in jsonPatterns.values():
+      for p in patternDict:
+        p["pattern"]["bitmap"] = p["pattern"].get("bitmap", None).tolist()
+        p["labels"] = p.get("labels", None).tolist()
 
     with open(os.path.join(path, "encoding_log.txt"), "w") as f:
       f.write(json.dumps(jsonPatterns, indent=1))

@@ -75,15 +75,21 @@ def run(args):
         "the data".format(time.time() - dataTime))
 
   encodeTime = time.time()
-  [runner.encodeSamples(d) for d in dataDict.iteritems()]
+  runner.encodeSamples()
   print ("Encoding complete; elapsed time is {0:.2f} seconds.\nNow running the "
          "experiment.".format(time.time() - encodeTime))
 
-  runner.runExperiment()
+  trialSizes = range(runner.getMaxSize())
+  for trainSize in trialSizes:
+    # Starting at 1 sample per category, incrementally add one sample to the
+    # training set until all samples are trained on.
+    for i in range(args.trials):
+      import pdb; pdb.set_trace()
+      runner.runTrial(trainSize)
 
-  runner.calculateResults()
+      runner.calculateResults()
 
-  runner.save()
+      runner.save()
 
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
 
@@ -133,6 +139,10 @@ if __name__ == "__main__":
                             "the samples randomly, False will allocate the "
                             "first n samples to training with the remainder "
                             "for testing.")
+  parser.add_argument("--trials",
+                      default=5,
+                      type=int,
+                      help="Number of trials to run per trial size.")
   parser.add_argument("-v", "--verbosity",
                       default=1,
                       type=int,

@@ -84,7 +84,7 @@ def run(args):
   print ("Encoding complete; elapsed time is {0:.2f} seconds.\nNow running the "
          "experiment.".format(time.time() - encodeTime))
 
-  runner.runExperiment()
+  runner.runExperiment(args.trainSize)
 
   runner.calculateResults()
 

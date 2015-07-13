@@ -93,6 +93,7 @@ class Runner(object):
     self.dataDict = None
     self.labelRefs = None
     self.partitions = []
+    self.patterns = defaultdict(list)
     self.samples = None
     self.results = []
 
@@ -156,8 +157,7 @@ class Runner(object):
           [self.labelRefs.index(label) for label in labels])
 
 
-  @staticmethod
-  def _preprocess(dataDict, preprocess):
+  def _preprocess(self, dataDict, preprocess):
     """
     Tokenize the samples, with or without preprocessing; operates on dataDict
     values in place.
@@ -194,8 +194,6 @@ class Runner(object):
     for filename, data in self.dataDict.iteritems():
       self._mapLabelRefs(data)
       self.dataDict[filename] = self._preprocess(data, preprocess)
-    import pdb; pdb.set_trace()
-
 
 
   def initModel(self):
@@ -214,33 +212,64 @@ class Runner(object):
                            format(self.modelName))
 
 
-  def encodeSamples(self, dataDict):
+  def encodeSamples(self):
     """
     Encode the text samples into bitmap patterns, and log to txt file. The
     encoded patterns are stored in a dict along with their corresponding class
     labels.
+
+    TODO: alternatively, don't have patterns dict, use self.dataDict[filename]
     """
-    self.patterns = [{"pattern": self.model.encodePattern(s[0]),
-                     "labels": s[1]}
-                     for s in self.samples]
+    for filename, data in self.dataDict.iteritems():
+
+      self.patterns[filename] = [{"pattern": self.model.encodePattern(sample[0]),
+                                  "labels": sample[1]}
+                                 for sample in data]
+
     self.model.logEncodings(self.patterns, self.modelPath)
 
 
-  def runExperiment(self):
-    """Train and test the model for each trial specified by self.trainSize."""
-    for i, size in enumerate(self.trainSize):
+  def runExperiment(self, trainSize):
+    """
+    Train and test the model for each trial specified by trainSize.
+
+    The training indices will be chosen at random for each trial, unless the
+    member variable orderedSplit is set to True.
+    """
+    for i, size in enumerate(trainSize):
+      import pdb; pdb.set_trace()
       self.partitions.append(self.partitionIndices(size))
 
       if self.verbosity > 0:
-        print ("\tRunner randomly selects to train on sample(s) {0}, and test "
-               "on sample(s) {1}.".
-               format(self.partitions[i][0], self.partitions[i][1]))
+        print ("\tRunner selects to train on sample(s) {0}, and test on "
+               "samples(s) {1}.".format(self.partitions[i][0],
+                                        self.partitions[i][1]))
 
       self.model.resetModel()
-      print "\tTraining for run {0} of {1}.".format(i+1, len(self.trainSize))
+      print "\tTraining for run {0} of {1}.".format(i+1, len(trainSize))
       self.training(i)
       print "\tTesting for this run."
       self.testing(i)
+
+
+  def runTrial(self, trainSize):
+    """Train and test the model for one trial specified by trainSize."""
+    for filename, data in self.patterns.iteritems():
+      length = len(data)
+      split = trainSize if trainSize < length else length
+      partitions = self.partitionIndices(split, length)
+      import pdb; pdb.set_trace()
+
+      if self.verbosity > 0:
+        print ("\tRunner selects to train on sample(s) {0}, and test "
+               "on sample(s) {1}.".
+               format(self.partitions[i][0], self.partitions[i][1]))
+
+    self.model.resetModel()
+    print "\tTraining for run {0} of {1}.".format(i+1, len(self.trainSize))
+    self.training(i)
+    print "\tTesting for this run."
+    self.testing(i)
 
 
   def training(self, trial):
@@ -298,13 +327,23 @@ class Runner(object):
       pkl.dump(self.model, f)
 
 
-  def partitionIndices(self, split):
+  def getMaxSize(self):
+    """Return the max length of the individual data dicts in self.dataDict."""
+    maxLength = 0
+    for _, data in self.dataDict.iteritems():
+      length = len(data)
+      if length > maxLength:
+        maxLength = length
+    return maxLength
+
+
+  def partitionIndices(self, split, length):
     """
     Returns train and test indices.
 
     TODO: use StandardSplit in data_split.py
     """
-    length = len(self.samples)
+    # length = len(self.samples)
     if self.orderedSplit:
       trainIdx = range(split)
       testIdx = range(split, length)
