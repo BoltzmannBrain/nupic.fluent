@@ -20,8 +20,6 @@
 # ----------------------------------------------------------------------
 """
 Experiment runner for classification survey question responses.
-
-TODO: after merging PlotNLP code, set the defualt plotting to 1.
 """
 
 
@@ -30,7 +28,9 @@ import os
 import pprint
 import time
 
+from collections import defaultdict
 from fluent.experiments.runner import Runner
+from fluent.utils.csv_helper import readCSV
 from fluent.utils.plotting import PlotNLP
 
 
@@ -71,6 +71,10 @@ def run(args):
 
   print "Reading in data and preprocessing."
   dataTime = time.time()
+  # Map to defaultdict stay consitent with eperiment_full.py data structures.
+  runner.dataDict = defaultdict(list)
+  runner.dataDict[runner.dataPath.split("/")[-1]] = readCSV(
+      runner.dataPath, sampleIdx=2, numLabels=runner.numClasses)
   runner.setupData()
   print ("Data setup complete; elapsed time is {0:.2f} seconds.\nNow encoding "
         "the data".format(time.time() - dataTime))
@@ -98,7 +102,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
   parser.add_argument("dataPath",
-                      help="absolute path to data CSV.")
+                      help="Absolute path to data CSV.")
   parser.add_argument("-e", "--experimentName",
                       default="survey_baseline_example",
                       type=str,

@@ -50,8 +50,8 @@ class Runner(object):
                numClasses,
                plots,
                orderedSplit,
-               trainSize,
-               verbosity):
+               trainSize=None,
+               verbosity=1):
     """
     @param dataPath         (str)     Path to raw data file for the experiment.
     @param resultsDir       (str)     Directory where for the results metrics.
@@ -88,8 +88,9 @@ class Runner(object):
     if self.plots:
       self.plotter = PlotNLP()
 
-    self.dataDice = None
-    self.labels = None
+    # self.dataDict is a defaultdict of OrderedDicts. Keys of the former are CSV
+    # names, and keys-values of the latter are samples-classifications.
+    self.dataDict = None
     self.labelRefs = None
     self.partitions = []
     self.samples = None
@@ -139,48 +140,62 @@ class Runner(object):
     return classificationAccuracies
 
 
-  def _mapLabelRefs(self):
-    """Replace the label strings in self.dataDict with corresponding ints."""
-    self.labelRefs = list(set(
-        itertools.chain.from_iterable(self.dataDict.values())))
-
-    for k, v in self.dataDict.iteritems():
-      self.dataDict[k] = numpy.array(
-          [self.labelRefs.index(label) for label in v])
+  @staticmethod
+  def getListSet(iterable):
+    """Return a list of the set of items in the input iterable."""
+    return list(set(itertools.chain.from_iterable(iterable)))
 
 
-  def _preprocess(self, preprocess):
-    """Tokenize the samples, with or without preprocessing."""
+  def _mapLabelRefs(self, dataDict):
+    """
+    Replace the label strings in dataDict with corresponding ints; operates on
+    dataDict values in place.
+    """
+    for samples, labels in dataDict.iteritems():
+      dataDict[samples] = numpy.array(
+          [self.labelRefs.index(label) for label in labels])
+
+
+  @staticmethod
+  def _preprocess(dataDict, preprocess):
+    """
+    Tokenize the samples, with or without preprocessing; operates on dataDict
+    values in place.
+    """
     texter = TextPreprocess()
     if preprocess:
-      self.samples = [(texter.tokenize(sample,
-                                       ignoreCommon=100,
-                                       removeStrings=["[identifier deleted]"],
-                                       correctSpell=True),
-                      labels) for sample, labels in self.dataDict.iteritems()]
+      samples = [(texter.tokenize(sample,
+                                  ignoreCommon=100,
+                                  removeStrings=["[identifier deleted]"],
+                                  correctSpell=True),
+                  labels) for sample, labels in dataDict.iteritems()]
     else:
-      self.samples = [(texter.tokenize(sample), labels)
-                      for sample, labels in self.dataDict.iteritems()]
-
-
-  def setupData(self, preprocess=False, sampleIdx=2):
-    """
-    Get the data from CSV and preprocess if specified.
-    One index in labelIdx implies the model will train on a single
-    classification per sample.
-    """
-    self.dataDict = readCSV(self.dataPath, sampleIdx, self.numClasses)
-
-    if not (isinstance(self.trainSize, list) or
-        all([0 <= size <= len(self.dataDict) for size in self.trainSize])):
-      raise ValueError("Invalid size(s) for training set.")
-
-    self._mapLabelRefs()
-
-    self._preprocess(preprocess)
+      samples = [(texter.tokenize(sample), labels)
+                 for sample, labels in dataDict.iteritems()]
 
     if self.verbosity > 1:
-      for i, s in enumerate(self.samples): print i, s
+      for i, s in enumerate(samples): print i, s
+
+    return samples
+
+
+  def setupData(self, preprocess=False):
+    """
+    Generate list for label references, map the labels to these indices, and
+    tokenize the text samples.
+
+    @param preprocess     (bool)              To preprocess the text or not.
+    """
+    labels = []
+    for filename, data in self.dataDict.iteritems():
+      labels.append(self.getListSet(data.values()))
+    self.labelRefs = self.getListSet(labels)
+
+    for filename, data in self.dataDict.iteritems():
+      self._mapLabelRefs(data)
+      self.dataDict[filename] = self._preprocess(data, preprocess)
+    import pdb; pdb.set_trace()
+
 
 
   def initModel(self):
@@ -199,7 +214,7 @@ class Runner(object):
                            format(self.modelName))
 
 
-  def encodeSamples(self):
+  def encodeSamples(self, dataDict):
     """
     Encode the text samples into bitmap patterns, and log to txt file. The
     encoded patterns are stored in a dict along with their corresponding class
