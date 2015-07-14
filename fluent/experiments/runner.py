@@ -97,9 +97,9 @@ class Runner(object):
     self.results = defaultdict(list)
 
 
-  def _calculateTrialAccuracies(self, results):
+  def _calculateTrialAccuracies(self, evaluationDict):
     """
-    @param results              (list)
+    @param evaluationDict              ()
 
     @return trialAccuracies     (defaultdict)   Items are defaultdicts, one for
         each size of the training set. Inner defaultdicts keys are
@@ -110,32 +110,30 @@ class Runner(object):
     # trialSize -> (category -> list of accuracies)
     trialAccuracies = defaultdict(lambda: defaultdict(lambda:
         numpy.ndarray(0)))
-    for i, r in enumerate(results):
-      accuracies = self.model.calculateClassificationResults(self.results[i])
-      for label, acc in accuracies:
-        category = self.labelRefs[label]
-        acc_list = trialAccuracies[size][category]
-        trialAccuracies[size][category] = numpy.append(acc_list, acc)
-
+    for trial, evals in evaluationDict.iteritems():
+      for trainSize, acc in enumerate(evals):
+        for datafile in acc.keys():
+          # import pdb; pdb.set_trace()
+          accList = trialAccuracies[trainSize][datafile]
+          trialAccuracies[trainSize][datafile] = numpy.append(accList, acc[datafile][0])
     return trialAccuracies
 
 
   def _calculateClassificationAccuracies(self, trialAccuracies):
     """
     @param trialAccuracies            (defaultdict)   Please see the description
-        in self._calculateClassificationAccuracies().
+        in self._calculateTrialAccuracies().
 
     @return classificationAccuracies  (defaultdict)   Keys are classification
         categories, with multiple numpy arrays as values -- one for each size of
         training sets, with one accuracy value for each run of that training set
         size.
     """
-    # Need the accuracies to be ordered for the plot
-    trials = sorted(set(self.trainSize))
     # category -> list of list of accuracies
     classificationAccuracies = defaultdict(list)
-    for trial in trials:
-      accuracies = trialAccuracies[trial]
+    for _, accuracies in trialAccuracies.iteritems():
+      # Iterate through each training size, in order [0, 1, 2, ...] as
+      # in trialAccuracies.keys()
       for label, acc in accuracies.iteritems():
         classificationAccuracies[label].append(acc)
 
@@ -259,15 +257,25 @@ class Runner(object):
 
   def runTrial(self, trainSize):
     """
-    Train and test the model for one trial specified by trainSize.
+    Train and test the model for one trial specified by trainSize; the model
+    is reset each run.
+
+    @return partitionsDict  (defaultdict)
+    @return results         (defaultdict)       Keys are datafile names, values
+        are two-tuples, where the elements are lists of the predicted and actual
+        classifications; these items are numpy arrays.
+
+    TODO: move the returned dicts to member variables; see commented out lines.
     """
     self.model.resetModel()
+    partitionsDict = defaultdict(list)
     for filename, data in self.patterns.iteritems():
       # Determine samples indices for which to train on.
       length = len(data)
       split = trainSize if trainSize < length else length
       partitions = self.partitionIndices(split, length)
-      self.partitions[filename].append(partitions)
+      # self.partitions[filename].append(partitions)
+      partitionsDict[filename] = (partitions)
 
       print ("\tRunning trial for the {0} data, with training size {1}.".
              format(filename, split))
@@ -278,9 +286,15 @@ class Runner(object):
 
       self.training(data, partitions[0])
 
+    results = defaultdict(list)
     for filename, data in self.patterns.iteritems():
-      if self.partitions[filename][-1:][0][1]:
-        self.testing(filename, data, self.partitions[filename][-1:][0][1])
+      # if partitionsDict[filename][-1:][0][1]:
+      if partitionsDict[filename][1]:
+        results[filename] = self.testing(
+            filename, data, partitionsDict[filename][1])
+        # results[filename].append(self.testing(
+        #     filename, data, partitionsDict[filename][-1:][0][1]))
+    return partitionsDict, results
 
 
   def training(self, data, indices):
@@ -298,39 +312,50 @@ class Runner(object):
       predicted = self.model.testModel(data[i]["pattern"])
       results[0].append(predicted)
       results[1].append(data[i]["labels"])
+    return results
+    # self.results[filename].append(results)
 
-    self.results[filename].append(results)
 
-
-  def calculateResults(self):
+  def calculateResults(self, partitions, results):
     """
     Calculate evaluation metrics from the result classifications.
+
+    @param partitions    (defaultdict)     Keys are filenames, values are
+        two-tuples: ([indices trained on], [indices tested on]).
+
+    @param results       (defaultdict)     Keys are filenames, values are
+        two-tuples: ([predicted classes], [actual classes]).
+
+    @return resultCalcs  (defaultdict)     Keys are filenames, values are
+        two-tuples: (accuracy, confusion matrix numpy array).
 
     TODO: pass intended CM results to plotter.plotConfusionMatrix()
     """
     resultCalcs = defaultdict(list)
-    for filename, results in self.results.iteritems():
-      resultCalcs[filename] = [self.model.evaluateResults(
-          r, self.labelRefs, self.partitions[filename][i][1])
-          for i, r in enumerate(results)]
+    for filename, res in results.iteritems():
+      # res is a two-tuple of lists for predicted and actual classifications
+      resultCalcs[filename] = self.model.evaluateResults(
+          results[filename], self.labelRefs, partitions[filename][1])
 
-      self._printFinalReport(filename, resultCalcs[filename])
+      # self._printClassificationsReport(filename, resultCalcs[filename])
 
-    import pdb; pdb.set_trace()
-    trialAccuracies = self._calculateTrialAccuracies(resultCalcs)
+    return resultCalcs
+
+
+  def calculateFinalResults(self, evaluationDict):
+    """
+
+    @param evaluationDict     (defaultdict)     Keys are trial numbers, and each
+        value is a list of defaultdicts, one for each trainSize; inner dicts'
+        keys are datafiles, and values are evaluation metrics
+        (accuracy, confusion matrix) for that run.
+    """
+    trialAccuracies = self._calculateTrialAccuracies(evaluationDict)
+
     classificationAccuracies = self._calculateClassificationAccuracies(
           trialAccuracies)
-    self.printFinalReport(trialAccuracies, classificationAccuracies)
 
-    if self.plots:
-      self.plotter.plotCategoryAccuracies(trialAccuracies, self.trainSize)
-      self.plotter.plotCumulativeAccuracies(classificationAccuracies,
-          self.trainSize)
-
-      if self.plots > 1:
-        # Plot extra evaluation figures -- confusion matrix.
-        self.plotter.plotConfusionMatrix(
-            self.setupConfusionMatrices(resultCalcs))
+    if self.plots: self._plot(trialAccuracies, classificationAccuracies)
 
 
   def save(self):
@@ -385,7 +410,7 @@ class Runner(object):
 
 
   @staticmethod
-  def _printFinalReport(name, results):
+  def _printClassificationsReport(name, results):
     """
     Prints result accuracies.
 
@@ -400,3 +425,15 @@ class Runner(object):
     print template.format("Size of training set", "Accuracy")
     for i, r in enumerate(results):
       print template.format(i, r[0])
+
+
+  def _plot(self, trialAccuracies, classificationAccuracies):
+    self.plotter.plotCategoryAccuracies(trialAccuracies, trialAccuracies.keys())
+
+    self.plotter.plotCumulativeAccuracies(
+        classificationAccuracies, trialAccuracies.keys())
+
+    if self.plots > 1:
+      # Plot extra evaluation figures -- confusion matrix.
+      self.plotter.plotConfusionMatrix(
+          self.setupConfusionMatrices(resultCalcs))

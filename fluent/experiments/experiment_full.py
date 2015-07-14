@@ -28,6 +28,7 @@ import os
 import pprint
 import time
 
+from collections import defaultdict
 from fluent.experiments.runner import Runner
 from fluent.utils.csv_helper import readDir
 from fluent.utils.plotting import PlotNLP
@@ -46,6 +47,41 @@ def checkInputs(args):
 
   print "Incorrect input given\n"
   return checkInputs(args)
+
+
+def _runExperiment(runner, trials, trainSizes):
+  """
+
+
+
+
+    - partitionsDict: Keys are trial numbers, and each value is a list of
+    defaultdicts, one for each trainSize; inner dicts' keys are datafiles, and
+    values are partitions ([train], [test]) for that run.
+    - resultsDict: Keys are trial numbers, and each value is a list of
+    defaultdicts, one for each trainSize; inner dicts' keys are datafiles, and
+    values are results ([predicted], [actual]) for that run.
+    - evaluationDict: Keys are trial numbers, and each value is a list of
+    defaultdicts, one for each trainSize; inner dicts' keys are datafiles, and
+    values are evaluation metrics (accuracy, confusion matrix) for that run.
+  """
+  partitionsDict = defaultdict(list)
+  resultsDict = defaultdict(list)
+  evaluationDict = defaultdict(list)
+  for trial in range(trials):
+    for size in trainSizes:
+      # Starting at 0 samples per category, incrementally add one sample to the
+      # training set until all samples are trained on.
+        # resultsDict and partitionsDict are [trial][trainSize]
+      p, r = runner.runTrial(size)
+      partitionsDict[trial].append(p)
+      resultsDict[trial].append(r)
+      evaluationDict[trial].append(runner.calculateResults(p, r))
+    # import pdb; pdb.set_trace()
+    # evaluationDict[trial] = runner.calculateResults(
+    #     partitionsDict[trial], resultsDict[trial])
+
+  return evaluationDict
 
 
 def run(args):
@@ -80,13 +116,11 @@ def run(args):
   print ("Encoding complete; elapsed time is {0:.2f} seconds.\nNow running the "
          "experiment.".format(time.time() - encodeTime))
 
-  trialSizes = range(runner.getMaxSize())
-  for trainSize in trialSizes:
-    # Starting at 0 samples per category, incrementally add one sample to the
-    # training set until all samples are trained on.
-    runner.runTrial(trainSize)
+  trainSizes = range(runner.getMaxSize())
+  evaluationDict = _runExperiment(runner, args.trials, trainSizes)
 
-  runner.calculateResults()
+  if args.plots:
+    runner.calculateFinalResults(evaluationDict)
 
   runner.save()
 
@@ -138,6 +172,10 @@ if __name__ == "__main__":
                             "the samples randomly, False will allocate the "
                             "first n samples to training with the remainder "
                             "for testing.")
+  parser.add_argument("--trials",
+                      default=5,
+                      type=int,
+                      help="Number of trials to run per trial size.")
   parser.add_argument("-v", "--verbosity",
                       default=1,
                       type=int,
