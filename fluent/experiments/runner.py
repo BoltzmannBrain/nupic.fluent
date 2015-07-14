@@ -428,7 +428,17 @@ class Runner(object):
 
 
   def _plot(self, trialAccuracies, classificationAccuracies):
-    self.plotter.plotCategoryAccuracies(trialAccuracies, trialAccuracies.keys())
+    """Plot evaluation metrics."""
+    # Plot six trialAccuracy plots at a time
+    subDict = defaultdict(list)
+    for k, v in trialAccuracies.iteritems():
+      subDict[k] = v
+      if not k % 6:
+        self.plotter.plotCategoryAccuracies(subDict, subDict.keys())
+        subDict.clear()
+    # Plot the remaining few
+    if subDict:
+    self.plotter.plotCategoryAccuracies(subDict, subDict.keys())
 
     self.plotter.plotCumulativeAccuracies(
         classificationAccuracies, trialAccuracies.keys())
