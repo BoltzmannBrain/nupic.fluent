@@ -97,18 +97,20 @@ class Runner(object):
     self.results = defaultdict(list)
 
 
-  def _calculateTrialAccuracies(self):
+  def _calculateTrialAccuracies(self, results):
     """
+    @param results              (list)
+
     @return trialAccuracies     (defaultdict)   Items are defaultdicts, one for
-        each size of the training set. Inner defaultdicts keys are classification
-        categories, with numpy array values that contain one accuracy value for
-        each trial.
+        each size of the training set. Inner defaultdicts keys are
+        classification categories, with numpy array values that contain one
+        accuracy value for each trial.
     """
     # To handle multiple trials of the same size:
     # trialSize -> (category -> list of accuracies)
     trialAccuracies = defaultdict(lambda: defaultdict(lambda:
         numpy.ndarray(0)))
-    for i, size in enumerate(self.trainSize):
+    for i, r in enumerate(results):
       accuracies = self.model.calculateClassificationResults(self.results[i])
       for label, acc in accuracies:
         category = self.labelRefs[label]
@@ -259,6 +261,7 @@ class Runner(object):
     """
     Train and test the model for one trial specified by trainSize.
     """
+    self.model.resetModel()
     for filename, data in self.patterns.iteritems():
       # Determine samples indices for which to train on.
       length = len(data)
@@ -276,7 +279,8 @@ class Runner(object):
       self.training(data, partitions[0])
 
     for filename, data in self.patterns.iteritems():
-      self.testing(filename, data, partitions[1])
+      if self.partitions[filename][-1:][0][1]:
+        self.testing(filename, data, self.partitions[filename][-1:][0][1])
 
 
   def training(self, data, indices):
@@ -310,13 +314,15 @@ class Runner(object):
           r, self.labelRefs, self.partitions[filename][i][1])
           for i, r in enumerate(results)]
 
-    self.printFinalReport()
+      self._printFinalReport(filename, resultCalcs[filename])
+
+    import pdb; pdb.set_trace()
+    trialAccuracies = self._calculateTrialAccuracies(resultCalcs)
+    classificationAccuracies = self._calculateClassificationAccuracies(
+          trialAccuracies)
+    self.printFinalReport(trialAccuracies, classificationAccuracies)
 
     if self.plots:
-      trialAccuracies = self._calculateTrialAccuracies()
-      classificationAccuracies = self._calculateClassificationAccuracies(
-          trialAccuracies)
-
       self.plotter.plotCategoryAccuracies(trialAccuracies, self.trainSize)
       self.plotter.plotCumulativeAccuracies(classificationAccuracies,
           self.trainSize)
@@ -378,14 +384,19 @@ class Runner(object):
     return accuracies
 
 
-  def printFinalReport(self):
+  @staticmethod
+  def _printFinalReport(name, results):
     """
     Prints result accuracies.
 
-    TODO: move to Runner
+    @param name         (str)           Name representing this experiment/trial.
+    @param results      (list)          Each item is a two-tuple: accuracy and
+        confusion matrix; only the accuracy is used here. The items are expected
+        to be in order where theire index is indicative of the training set
+        size.
     """
     template = "{0:<20}|{1:<10}"
-    print "Evaluation results for this experiment:"
+    print "Evaluation results for \'{0}\':".format(name)
     print template.format("Size of training set", "Accuracy")
-    for i, a in enumerate(accuracies):
-      print template.format(trainSize[i], a)
+    for i, r in enumerate(results):
+      print template.format(i, r[0])

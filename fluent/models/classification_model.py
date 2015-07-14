@@ -275,7 +275,7 @@ class ClassificationModel(object):
 
     TODO: move to Runner
     """
-    template = "{0:<10}|{1:<55}|{2:<55}"
+    template = "{0:<10}|{1:<90}|{2:<90}"
     print "Test classifications for the trial:"
     print template.format("#", "Actual", "Predicted")
     for i in xrange(len(labels[0])):
