@@ -37,7 +37,7 @@ def readCSV(csvFile, sampleIdx, numLabels):
   @param csvFile         (str)          File name for the input CSV.
   @param sampleIdx       (int)          Column number of the text samples.
   @param numLabels       (int)          Number of columns of category labels.
-  @return                (OrderedDict)  Keys are samples, values are lists of
+  @return dataDict       (OrderedDict)  Keys are samples, values are lists of
                                         corresponding category labels (strings).
   """
   try:
@@ -66,18 +66,15 @@ def readDir(dirPath, sampleIdx, numLabels):
   @param sampleIdx          (int)          Column number of the text samples.
   @param numLabels          (int)          Number of columns of category labels.
   
-  @return samplesDict       (defaultdict)  Keys are CSV names, values are
+  @return dataDict          (defaultdict)  Keys are CSV names, values are
       OrderedDicts, where the keys/values are as specified in readCSV().
-  
-  @return randoSamplesDict  (defaultdict)  Copy of samplesDict, but the order of
-      samples in each OrderedDict item is randomized.
   """
-  samplesDict = defaultdict(list)
+  dataDict = defaultdict(list)
   for _, _, files in os.walk(dirPath):
     for f in files:
-      samplesDict[f] = readCSV(os.path.join(dirPath, f), sampleIdx, numLabels)
+      dataDict[f] = readCSV(os.path.join(dirPath, f), sampleIdx, numLabels)
 
-  return samplesDict
+  return dataDict
 
 
 def writeCSV(data, headers, csvFile):
