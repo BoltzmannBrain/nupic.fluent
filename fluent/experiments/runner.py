@@ -113,9 +113,9 @@ class Runner(object):
     for trial, evals in evaluationDict.iteritems():
       for trainSize, acc in enumerate(evals):
         for datafile in acc.keys():
-          # import pdb; pdb.set_trace()
           accList = trialAccuracies[trainSize][datafile]
           trialAccuracies[trainSize][datafile] = numpy.append(accList, acc[datafile][0])
+
     return trialAccuracies
 
 
@@ -190,11 +190,15 @@ class Runner(object):
       labels.append(self.getListSet(data.values()))
     self.labelRefs = self.getListSet(labels)
 
+    # Map label strings to indices, preprocess the text
     for filename, data in self.dataDict.iteritems():
       self._mapLabelRefs(data)
       self.dataDict[filename] = self._preprocess(data, preprocess)
-      # Also setup results defaultdict:
-      self.results[filename] = []
+
+    if self.plots:
+      # Rename the keys from filenames to category names.
+      for filename in self.dataDict.keys():
+        self.dataDict[filename.split(".")[-2]] = self.dataDict.pop(filename)
 
 
   def initModel(self):
@@ -237,11 +241,11 @@ class Runner(object):
 
     The training indices will be chosen at random for each trial, unless the
     member variable orderedSplit is set to True.
+
+    TODO: broken
     """
     for i, size in enumerate(trainSize):
-      import pdb; pdb.set_trace()
-      # self.partitions.append(self.partitionIndices(size))
-      partitions = []
+      self.partitions.append(self.partitionIndices(size))
 
       if self.verbosity > 0:
         print ("\tRunner selects to train on sample(s) {0}, and test on "
@@ -429,19 +433,19 @@ class Runner(object):
 
   def _plot(self, trialAccuracies, classificationAccuracies):
     """Plot evaluation metrics."""
-    # Plot six trialAccuracy plots at a time
+    self.plotter.plotCumulativeAccuracies(
+        classificationAccuracies, trialAccuracies.keys())
+
+    # Plot only a few trialAccuracy plots per subplot
     subDict = defaultdict(list)
     for k, v in trialAccuracies.iteritems():
       subDict[k] = v
-      if not k % 6:
+      if not k % 20:
         self.plotter.plotCategoryAccuracies(subDict, subDict.keys())
         subDict.clear()
     # Plot the remaining few
     if subDict:
-    self.plotter.plotCategoryAccuracies(subDict, subDict.keys())
-
-    self.plotter.plotCumulativeAccuracies(
-        classificationAccuracies, trialAccuracies.keys())
+      self.plotter.plotCategoryAccuracies(subDict, subDict.keys())
 
     if self.plots > 1:
       # Plot extra evaluation figures -- confusion matrix.
